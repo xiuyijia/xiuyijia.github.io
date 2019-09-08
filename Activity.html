@@ -73,7 +73,82 @@ white-space: nowrap;
 
 
 </style>
-  
+  <style>
+* { -moz-boz-sizing: border-box; font-family: Avenir, sans-serif; }
+body { margin: 0; } 
+figure#desk { 
+  transform: rotateX(60deg);
+  position: relative;
+  width: 200%;
+  height: 900px;
+  background: url(woodgrain.jpg); 
+  background-size: cover;
+  margin-left: -200px;
+  margin-top: -150px;
+  transition: 1.2s 2s;
+}
+div#scatter {
+  perspective: 700px;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  background: linear-gradient(#6c6769  0%, #0a0a0a 100%); 
+}
+figure#desk a  {
+  position: absolute;
+  top: 150px;
+  border: 20px solid #ffe;
+  box-shadow: 0px 0px 6px 6px rgba(0,0,0,0.3);
+  width: 20%;
+  font-size: 0;
+  background: #000;
+}
+figure#desk a video { width: 100%; font-size: 0; transition: .6s; }
+figure a#estee  {
+  transform: translateX(200%) rotateZ(60deg);
+  transition: 2s;
+}
+figure:hover a#estee  { transform: translateX(30%) rotateZ(700deg); 
+}
+figure a#indre { 
+  top: 300px;
+  transform: translateX(220%) rotateZ(48deg);
+  transition: 2s .4s; 
+}
+figure#desk:hover a#indre { 
+  transform: translateX(100%) rotateZ(360deg);
+}
+
+figure a#oytto { 
+  top: 120px;
+  transform: translateX(180%) rotateZ(48deg);
+  transition: 2s .4s; 
+}
+figure#desk:hover a#oytto { 
+  transform: translateX(80%) rotateZ(320deg);
+}
+figure#desk:hover {
+  transform: rotateX(10deg); 
+}
+figure#desk a:hover video { opacity: 0.5; }
+figure#desk a:before {
+  content: "play";
+  font-size: 30px;
+  position: absolute;
+  top: 45%; left: 45%;
+  color: #fff;
+  opacity: 0;
+  transition: .3s;
+}
+figure#desk a:hover:before { opacity: 1; }
+figure#desk a.playing:hover:before {
+  content: none; 
+  opacity: 0; 
+}
+figure#desk a.playing video { opacity: 1; }
+</style>
+
+    <script src="js/prefixfree.min.js"></script>
         
         
     
@@ -180,24 +255,32 @@ white-space: nowrap;
                     <div class="page-wrapper" tabindex="-1" role="main">
                         <div class="page-inner">
                             
-<div id="book-search-results">
-    <div class="search-noresults">
-    
-                                <section class="normal markdown-section">
-                                
-                                <p>&#xFEFF;</p><h1 id="xiuyi-jia-group" align="center">Xiuyi Jia Group</h1><p></p>
-<h2 id="idam&#x56E2;&#x961F;&#x6B22;&#x5FEB;&#x7684;&#x805A;&#x9910;&#x6D3B;&#x52A8;" align="center">IDAM&#x56E2;&#x961F;&#x6B22;&#x5FEB;&#x7684;&#x805A;&#x9910;&#x6D3B;&#x52A8;</h2>
-<p><img src="a1.jpg" width="60%" align="center"></p>
-<h2 id="idam&#x56E2;&#x961F;&#x4E00;&#x8D77;&#x8BA4;&#x771F;&#x7684;&#x542C;&#x53D6;&#x62A5;&#x544A;" align="center">IDAM&#x56E2;&#x961F;&#x4E00;&#x8D77;&#x8BA4;&#x771F;&#x7684;&#x542C;&#x53D6;&#x62A5;&#x544A;</h2>
-<p><img src="a2.jpg" width="60%" align="center"></p>
-<h2 id="idam&#x56E2;&#x961F;&#x5168;&#x5BB6;&#x798F;" align="center">IDAM&#x56E2;&#x961F;&#x5168;&#x5BB6;&#x798F;</h2>
-<p><img src="a3.jpg" width="60%" align="center"></p>
-
-                                
-                                </section>
-                            
-    </div>
+                             <div style="text-align:center;clear:both;">
+<script src="/gg_bd_ad_720x90.js" type="text/javascript"></script>
+<script src="/follow.js" type="text/javascript"></script>
 </div>
+  <div id="scatter">
+<figure id="desk">
+<a href="#" id="estee"> 
+  <video poster="a1.jpg">
+</video>
+</a>
+<a href="#" id="indre"> 
+<video poster="a2.jpg">
+</video>
+</a>
+<a href="#" id="oytto"> 
+<video poster="a3.jpg">
+</video>
+</a>
+</figure>
+
+  <script src='js/jquery.js'></script>
+
+  <script src="js/index.js"></script>   
+
+
+
 
                         </div>
                     </div>
