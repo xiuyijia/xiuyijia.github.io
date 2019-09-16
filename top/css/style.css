@@ -20,7 +20,7 @@ h2{font-size:12px}
 /*gotop*/
 .cbbfixed {position: fixed;right: 10px;transition: bottom ease .3s;bottom: -85px;z-index: 3;cursor:pointer;}
 .cbbfixed .cbbtn {width: 40px;height: 40px;display: block;background-color:#3b5997;}
-.cbbfixed .gotop .up-icon{float:left;margin:14px 0 0 9px;width:23px;height:12px;background: url(../img/top.jpg);}
+.cbbfixed .gotop .up-icon{float:left;margin:14px 0 0 9px;width:23px;height:12px;background: url(../images/side-icon02.png);}
 .cbbfixed .gotop:hover {background-color:#2c2d2e;}
 
 .cbbfixed .cweixin {background: #1cafec;}
