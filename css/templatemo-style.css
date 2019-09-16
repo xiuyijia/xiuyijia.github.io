@@ -288,9 +288,9 @@ body {
 @media screen and (max-width: 1139px), screen and (max-height: 834px) {
 
 	.container { width: 1080px; }
-	.tm-sidebar { width: 300px; }
+	.tm-sidebar {width: 300px; }
 	.tm-main-content { margin-left: 300px; }
-	.tm-team-description-container { max-width: 330px; }
+	.tm-team-description-container { max-width: 330px; }	
 }
 
 @media screen and (max-width: 991px) {
