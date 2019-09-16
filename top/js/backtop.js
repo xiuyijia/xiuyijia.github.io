@@ -20,7 +20,7 @@ chinaz.prototype = {
 		$(window).bind("scroll",function() {
             var d = $(document).scrollTop(),
             e = $(window).height();
-            0 < d ? $(".cbbfixed").css("bottom", "-1800px") : $(".cbbfixed").css("bottom", "-200px");
+            0 < d ? $(".cbbfixed").css("bottom", "-1000px") : $(".cbbfixed").css("bottom", "-200px");
 			clearTimeout(timmer);
 			timmer = setTimeout(function() {
                 clearTimeout(timmer)
