@@ -1,0 +1,911 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Repository for software defect prediction</title>
+<meta http-equiv="Content-Type" content="text/html; charset=GBK">
+<script type="text/javascript">
+<!--
+// QuickSearch script for JabRef HTML export 
+// Version: 3.0
+//
+// Copyright (c) 2006-2011, Mark Schenk
+//
+// This software is distributed under a Creative Commons Attribution 3.0 License
+// http://creativecommons.org/licenses/by/3.0/
+//
+// Features:
+// - intuitive find-as-you-type searching
+//    ~ case insensitive
+//    ~ ignore diacritics (optional)
+//
+// - search with/without Regular Expressions
+// - match BibTeX key
+//
+
+// Search settings
+var searchAbstract = true;	// search in abstract
+var searchReview = true;	// search in review
+
+var noSquiggles = true; 	// ignore diacritics when searching
+var searchRegExp = false; 	// enable RegExp searches
+
+
+if (window.addEventListener) {
+	window.addEventListener("load",initSearch,false); }
+else if (window.attachEvent) {
+	window.attachEvent("onload", initSearch); }
+
+function initSearch() {
+	// check for quick search table and searchfield
+	if (!document.getElementById('qs_table')||!document.getElementById('quicksearch')) { return; }
+
+	// load all the rows and sort into arrays
+	loadTableData();
+	
+	//find the query field
+	qsfield = document.getElementById('qs_field');
+
+	// previous search term; used for speed optimisation
+	prevSearch = '';
+
+	//find statistics location
+	stats = document.getElementById('stat');
+	setStatistics(-1);
+	
+	// set up preferences
+	initPreferences();
+
+	// shows the searchfield
+	document.getElementById('quicksearch').style.display = 'block';
+	document.getElementById('qs_field').onkeyup = quickSearch;
+}
+
+function loadTableData() {
+	// find table and appropriate rows
+	searchTable = document.getElementById('qs_table');
+	var allRows = searchTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+	// split all rows into entryRows and infoRows (e.g. abstract, review, bibtex)
+	entryRows = new Array(); infoRows = new Array(); absRows = new Array(); revRows = new Array();
+
+	// get data from each row
+	entryRowsData = new Array(); absRowsData = new Array(); revRowsData = new Array(); 
+	
+	BibTeXKeys = new Array();
+	
+	for (var i=0, k=0, j=0; i<allRows.length;i++) {
+		if (allRows[i].className.match(/entry/)) {
+			entryRows[j] = allRows[i];
+			entryRowsData[j] = stripDiacritics(getTextContent(allRows[i]));
+			allRows[i].id ? BibTeXKeys[j] = allRows[i].id : allRows[i].id = 'autokey_'+j;
+			j ++;
+		} else {
+			infoRows[k++] = allRows[i];
+			// check for abstract/review
+			if (allRows[i].className.match(/abstract/)) {
+				absRows.push(allRows[i]);
+				absRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			} else if (allRows[i].className.match(/review/)) {
+				revRows.push(allRows[i]);
+				revRowsData[j-1] = stripDiacritics(getTextContent(allRows[i]));
+			}
+		}
+	}
+	//number of entries and rows
+	numEntries = entryRows.length;
+	numInfo = infoRows.length;
+	numAbs = absRows.length;
+	numRev = revRows.length;
+}
+
+function quickSearch(){
+	
+	tInput = qsfield;
+
+	if (tInput.value.length == 0) {
+		showAll();
+		setStatistics(-1);
+		qsfield.className = '';
+		return;
+	} else {
+		t = stripDiacritics(tInput.value);
+
+		if(!searchRegExp) { t = escapeRegExp(t); }
+			
+		// only search for valid RegExp
+		try {
+			textRegExp = new RegExp(t,"i");
+			closeAllInfo();
+			qsfield.className = '';
+		}
+			catch(err) {
+			prevSearch = tInput.value;
+			qsfield.className = 'invalidsearch';
+			return;
+		}
+	}
+	
+	// count number of hits
+	var hits = 0;
+
+	// start looping through all entry rows
+	for (var i = 0; cRow = entryRows[i]; i++){
+
+		// only show search the cells if it isn't already hidden OR if the search term is getting shorter, then search all
+		if(cRow.className.indexOf('noshow')==-1 || tInput.value.length <= prevSearch.length){
+			var found = false; 
+
+			if (entryRowsData[i].search(textRegExp) != -1 || BibTeXKeys[i].search(textRegExp) != -1){ 
+				found = true;
+			} else {
+				if(searchAbstract && absRowsData[i]!=undefined) {
+					if (absRowsData[i].search(textRegExp) != -1){ found=true; } 
+				}
+				if(searchReview && revRowsData[i]!=undefined) {
+					if (revRowsData[i].search(textRegExp) != -1){ found=true; } 
+				}
+			}
+			
+			if (found){
+				cRow.className = 'entry show';
+				hits++;
+			} else {
+				cRow.className = 'entry noshow';
+			}
+		}
+	}
+
+	// update statistics
+	setStatistics(hits)
+	
+	// set previous search value
+	prevSearch = tInput.value;
+}
+
+
+// Strip Diacritics from text
+// http://stackoverflow.com/questions/990904/javascript-remove-accents-in-strings
+
+// String containing replacement characters for stripping accents 
+var stripstring = 
+    'AAAAAAACEEEEIIII'+
+    'DNOOOOO.OUUUUY..'+
+    'aaaaaaaceeeeiiii'+
+    'dnooooo.ouuuuy.y'+
+    'AaAaAaCcCcCcCcDd'+
+    'DdEeEeEeEeEeGgGg'+
+    'GgGgHhHhIiIiIiIi'+
+    'IiIiJjKkkLlLlLlL'+
+    'lJlNnNnNnnNnOoOo'+
+    'OoOoRrRrRrSsSsSs'+
+    'SsTtTtTtUuUuUuUu'+
+    'UuUuWwYyYZzZzZz.';
+
+function stripDiacritics(str){
+
+    if(noSquiggles==false){
+        return str;
+    }
+
+    var answer='';
+    for(var i=0;i<str.length;i++){
+        var ch=str[i];
+        var chindex=ch.charCodeAt(0)-192;   // Index of character code in the strip string
+        if(chindex>=0 && chindex<stripstring.length){
+            // Character is within our table, so we can strip the accent...
+            var outch=stripstring.charAt(chindex);
+            // ...unless it was shown as a '.'
+            if(outch!='.')ch=outch;
+        }
+        answer+=ch;
+    }
+    return answer;
+}
+
+// http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+// NOTE: must escape every \ in the export code because of the JabRef Export...
+function escapeRegExp(str) {
+  return str.replace(/[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+function toggleInfo(articleid,info) {
+
+	var entry = document.getElementById(articleid);
+	var abs = document.getElementById('abs_'+articleid);
+	var rev = document.getElementById('rev_'+articleid);
+	var bib = document.getElementById('bib_'+articleid);
+	
+	if (abs && info == 'abstract') {
+		abs.className.indexOf('noshow') == -1?abs.className = 'abstract noshow':abs.className = 'abstract show';
+	} else if (rev && info == 'review') {
+		rev.className.indexOf('noshow') == -1?rev.className = 'review noshow':rev.className = 'review show';
+	} else if (bib && info == 'bibtex') {
+		bib.className.indexOf('noshow') == -1?bib.className = 'bibtex noshow':bib.className = 'bibtex show';
+	} else { 
+		return;
+	}
+
+	// check if one or the other is available
+	var revshow; var absshow; var bibshow;
+	(abs && abs.className.indexOf('noshow') == -1)? absshow = true: absshow = false;
+	(rev && rev.className.indexOf('noshow') == -1)? revshow = true: revshow = false;	
+	(bib && bib.className.indexOf('noshow') == -1)? bibshow = true: bibshow = false;
+	
+	// highlight original entry
+	if(entry) {
+		if (revshow || absshow || bibshow) {
+		entry.className = 'entry highlight show';
+		} else {
+		entry.className = 'entry show';
+		}
+	}
+	
+	// When there's a combination of abstract/review/bibtex showing, need to add class for correct styling
+	if(absshow) {
+		(revshow||bibshow)?abs.className = 'abstract nextshow':abs.className = 'abstract';
+	} 
+	if (revshow) {
+		bibshow?rev.className = 'review nextshow': rev.className = 'review';
+	}	
+	
+}
+
+function setStatistics (hits) {
+	if(hits < 0) { hits=numEntries; }
+	if(stats) { stats.firstChild.data = hits + '/' + numEntries}
+}
+
+function getTextContent(node) {
+	// Function written by Arve Bersvendsen
+	// http://www.virtuelvis.com
+	
+	if (node.nodeType == 3) {
+	return node.nodeValue;
+	} // text node
+	if (node.nodeType == 1 && node.className != "infolinks") { // element node
+	var text = [];
+	for (var chld = node.firstChild;chld;chld=chld.nextSibling) {
+		text.push(getTextContent(chld));
+	}
+	return text.join("");
+	} return ""; // some other node, won't contain text nodes.
+}
+
+function showAll(){
+	closeAllInfo();
+	for (var i = 0; i < numEntries; i++){ entryRows[i].className = 'entry show'; }
+}
+
+function closeAllInfo(){
+	for (var i=0; i < numInfo; i++){
+		if (infoRows[i].className.indexOf('noshow') ==-1) {
+			infoRows[i].className = infoRows[i].className + ' noshow';
+		}
+	}
+}
+
+function clearQS() {
+	qsfield.value = '';
+	showAll();
+}
+
+function redoQS(){
+	showAll();
+	quickSearch(qsfield);
+}
+
+function updateSetting(obj){
+	var option = obj.id;
+	var checked = obj.value;
+
+	switch(option)
+	 {
+	 case "opt_searchAbs":
+	   searchAbstract=!searchAbstract;
+	   redoQS();
+	   break;
+	 case "opt_searchRev":
+	   searchReview=!searchReview;
+	   redoQS();
+	   break;
+	 case "opt_useRegExp":
+	   searchRegExp=!searchRegExp;
+	   redoQS();
+	   break;
+	 case "opt_noAccents":
+	   noSquiggles=!noSquiggles;
+	   loadTableData();
+	   redoQS();
+	   break;
+	 }
+}
+
+function initPreferences(){
+	if(searchAbstract){document.getElementById("opt_searchAbs").checked = true;}
+	if(searchReview){document.getElementById("opt_searchRev").checked = true;}
+	if(noSquiggles){document.getElementById("opt_noAccents").checked = true;}
+	if(searchRegExp){document.getElementById("opt_useRegExp").checked = true;}
+	
+	if(numAbs==0) {document.getElementById("opt_searchAbs").parentNode.style.display = 'none';}
+	if(numRev==0) {document.getElementById("opt_searchRev").parentNode.style.display = 'none';}
+}
+
+function toggleSettings(){
+	var togglebutton = document.getElementById('showsettings');
+	var settings = document.getElementById('settings');
+	
+	if(settings.className == "hidden"){
+		settings.className = "show";
+		togglebutton.innerText = "close settings";
+		togglebutton.textContent = "close settings";
+	}else{
+		settings.className = "hidden";
+		togglebutton.innerText = "settings...";		
+		togglebutton.textContent = "settings...";
+	}
+}
+
+-->
+</script>
+<style type="text/css">
+body { background-color: white; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.2; padding: 1em; color: #2E2E2E; margin: auto 2em; }
+
+form#quicksearch { width: auto; border-style: solid; border-color: gray; border-width: 1px 0px; padding: 0.7em 0.5em; display:none; position:relative; }
+span#searchstat {padding-left: 1em;}
+
+div#settings { margin-top:0.7em; /* border-bottom: 1px transparent solid; background-color: #efefef; border: 1px grey solid; */ }
+div#settings ul {margin: 0; padding: 0; }
+div#settings li {margin: 0; padding: 0 1em 0 0; display: inline; list-style: none; }
+div#settings li + li { border-left: 2px #efefef solid; padding-left: 0.5em;}
+div#settings input { margin-bottom: 0px;}
+
+div#settings.hidden {display:none;}
+
+#showsettings { border: 1px grey solid; padding: 0 0.5em; float:right; line-height: 1.6em; text-align: right; }
+#showsettings:hover { cursor: pointer; }
+
+.invalidsearch { background-color: red; }
+input[type="button"] { background-color: #efefef; border: 1px #2E2E2E solid;}
+
+table { width: 100%; empty-cells: show; border-spacing: 0em 0.2em; margin: 1em 0em; border-style: none; }
+th, td { border: 1px gray solid; border-width: 1px 1px; padding: 0.5em; vertical-align: top; text-align: left; }
+th { background-color: #efefef; }
+td + td, th + th { border-left: none; }
+
+td a { color: navy; text-decoration: none; }
+td a:hover  { text-decoration: underline; }
+
+tr.noshow { display: none;}
+tr.highlight td { background-color: #EFEFEF; border-top: 2px #2E2E2E solid; font-weight: bold; }
+tr.abstract td, tr.review td, tr.bibtex td { background-color: #EFEFEF; text-align: justify; border-bottom: 2px #2E2E2E solid; }
+tr.nextshow td { border-bottom: 1px gray solid; }
+
+tr.bibtex pre { width: 100%; overflow: auto; white-space: pre-wrap;}
+p.infolinks { margin: 0.3em 0em 0em 0em; padding: 0px; }
+
+@media print {
+	p.infolinks, #qs_settings, #quicksearch, t.bibtex { display: none !important; }
+	tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<h2> This repository mainly includes related papers for <strong>Label Distribution Learning</strong></h2>
+
+<form action="" id="quicksearch">
+<input type="text" id="qs_field" autocomplete="off" placeholder="Type to search..." /> <input type="button" onClick="clearQS()" value="clear" />
+<span id="searchstat">Matching entries: <span id="stat">0</span></span>
+<div id="showsettings" onClick="toggleSettings()">settings...</div>
+<div id="settings" class="hidden">
+<ul>
+<li><input type="checkbox" class="search_setting" id="opt_searchAbs" onChange="updateSetting(this)"><label for="opt_searchAbs"> include abstract</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_searchRev" onChange="updateSetting(this)"><label for="opt_searchRev"> include review</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_useRegExp" onChange="updateSetting(this)"><label for="opt_useRegExp"> use RegExp</label></li>
+<li><input type="checkbox" class="search_setting" id="opt_noAccents" onChange="updateSetting(this)"><label for="opt_noAccents"> ignore accents</label></li>
+</ul>
+</div>
+</form>
+<table id="qs_table" border="1">
+<thead><tr><th width="20%">Author</th><th width="35%">Title</th><th width="5%">Year</th><th width="30%">Journal/Proceedings</th><th width="10%">Reftype</th></tr></thead>
+
+
+
+<tbody>
+
+
+<tr id="" class="entry">
+	<td> Biswas M, Kuppili V, Edla D R</td>
+	<td> ALDL: a novel method for label distribution learning</td>
+	<td>2019</td>
+	<td> Sadhana, 2019, 44(3): 53</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Huang H, Cheng S L, Hong Z, et al</td>
+	<td> Label Distribution Learning Based Age-Invariant Face Recognition</td>
+	<td>2019</td>
+	<td> Pacific-Asia Conference on Knowledge Discovery and Data Mining, 2019: 214-222</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Jia X, Zheng X, Li W, et al</td>
+	<td> Facial Emotion Distribution Learning by Exploiting Low-Rank Label Correlations Locally</td>
+	<td>2019</td>
+	<td> Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, 2019: 9841-9850</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Jia X, Ren T, Chen L, et al</td>
+	<td> Weakly supervised label distribution learning based on transductive matrix completion with sample correlations</td>
+	<td>2019</td>
+	<td> Pattern Recognition Letters, 2019, 125: 453-462</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Ling M, Geng X</td>
+	<td> Soft video parsing by label distribution learning</td>
+	<td>2019</td>
+	<td> Frontiers of Computer Science, 2019, 13(2): 302-317</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Ling M, Geng X</td>
+	<td> Indoor Crowd Counting by Mixture of Gaussians Label Distribution Learning</td>
+	<td>2019</td>
+	<td> IEEE Transactions on Image Processing, 2019, 28(11): 5691-5701</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Ren T, Jia X, Li W, Zhao S</td>
+	<td> Label Distribution Learning with Label Correlations via Low-Rank Approximation</td>
+	<td>2019</td>
+	<td> IJCAI, 2019: 3325-3331</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Ren T, Jia X, Li W, et al</td>
+	<td> Label Distribution Learning with Label-Specific Features</td>
+	<td>2019</td>
+	<td> IJCAI, 2019: 3318-3324</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Su K, Geng X</td>
+	<td> Soft Facial Landmark Detection by Label Distribution Learning</td>
+	<td>2019</td>
+	<td> AAAI, 2019: 5008-5015</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Wang J, Geng X</td>
+	<td> Classification with Label Distribution Learning</td>
+	<td>2019</td>
+	<td> IJCAI, 2019: 3712-3718</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Wang J, Geng X</td>
+	<td> Theoretical Analysis of Label Distribution Learning</td>
+	<td>2019</td>
+	<td> AAAI, 2019: 5256-5263</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Wang K, Geng X</td>
+	<td> Discrete Binary Coding based Label Distribution Learning</td>
+	<td>2019</td>
+	<td> IJCAI, 2019: 3733-3739</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xu L, Chen J, Gan Y</td>
+	<td> Head pose estimation using improved label distribution learning with fewer annotations</td>
+	<td>2019</td>
+	<td> Multimedia Tools and Applications, 2019, 78(14): 19141-19162</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xu C, Geng X</td>
+	<td> Hierarchical Classification Based on Label Distribution Learning</td>
+	<td>2019</td>
+	<td> AAAI, 2019: 5533-5540</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xu S, Shang L, Shen F</td>
+	<td> Latent Semantics Encoding for Label Distribution Learning</td>
+	<td>2019</td>
+	<td> International Joint Conferences on Artificial Intelligence, 2019: 3982-3988</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhang H, Geng X, Zhang Y, et al</td>
+	<td> Recurrent age estimation</td>
+	<td>2019</td>
+	<td> PRL, 2019, 125: 271-277</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zeng X Q, Chen S F, Xiang R, et al</td>
+	<td> Filling missing values by local reconstruction for incomplete label distribution learning</td>
+	<td>2019</td>
+	<td> International Journal of Wireless and Mobile Computing, 2019, 16(4): 314-321</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Chen M, Wang X, Feng B, et al</td>
+	<td> Structured random forest for label distribution learning</td>
+	<td>2018</td>
+	<td> Neurocomputing, 2018, 320: 171-182</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Gao B B, Zhou H Y, Wu J, et al</td>
+	<td> Age Estimation Using Expectation of Label Distribution Learning</td>
+	<td>2018</td>
+	<td> IJCAI, 2018: 712-718</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Geng X, Xu N</td>
+	<td> Label distribution learning and label enhancement</td>
+	<td>2018</td>
+	<td> SCIENTIA SINICA Informationis, 2018, 48(5): 521-530</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Jia X, Li W, Liu J, et al</td>
+	<td> Label distribution learning by exploiting label correlations</td>
+	<td>2018</td>
+	<td> AAAI, 2018: 3310-3317</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Wang K, Geng X</td>
+	<td> Binary Coding based Label Distribution Learning</td>
+	<td>2018</td>
+	<td> International Joint Conferences on Artificial Intelligence, 2018: 2783-2789</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Wang X</td>
+	<td> Electricity price probability prediction based on label distribution learning forest</td>
+	<td>2018</td>
+	<td> Computer Era, 2018</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xu N, Tao A, Geng X</td>
+	<td> Label Enhancement for Label Distribution Learning</td>
+	<td>2018</td>
+	<td> IJCAI, 2018: 2926-2932</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Yang J F, Chen L Y, Zhang L, et al</td>
+	<td> Historical Context-based Style Classification of Painting Images via Label Distribution Learning</td>
+	<td>2018</td>
+	<td> ACM Multimedia, 2018: 1154-1162</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Yang W Y, Li C, Zhao H</td>
+	<td> Label Distribution Learning by Regularized Sample Self-Representation</td>
+	<td>2018</td>
+	<td> Mathematical Problems in Engineering, 2018: 1-11</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhao P, Zhou Z H</td>
+	<td> Label distribution learning by optimal transport</td>
+	<td>2018</td>
+	<td> AAAI, 2018</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zheng X, Jia X, Li W</td>
+	<td> Label distribution learning by exploiting sample correlations locally</td>
+	<td>2018</td>
+	<td> AAAI, 2018: 4556-4563</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhai Y S, Dai J H, Shi H</td>
+	<td> Label Distribution Learning Based on Ensemble Neural Networks</td>
+	<td>2018</td>
+	<td> Neural Information Processing, 2018: 593-602</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Peng C L, Tao A, Geng X</td>
+	<td> Label Embedding Based on Multi-Scale Locality Preservation</td>
+	<td>2018</td>
+	<td> IJCAI, 2018: 2623-2629</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Gao B B, Xing C, Xie C W, et al</td>
+	<td> Deep label distribution learning with label ambiguity</td>
+	<td>2017</td>
+	<td> IEEE Transactions on Image Processing, 2017, 26(6): 2825-2838</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> He Z, Li X, Zhang Z, et al</td>
+	<td> Data-dependent label distribution learning for age estimation</td>
+	<td>2017</td>
+	<td> IEEE Transactions on Image Processing, 2017, 26(8): 3846-3858</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Hou P, Geng X, Huo Z W, et al</td>
+	<td> Semi-supervised adaptive label distribution learning for facial age estimation</td>
+	<td>2017</td>
+	<td> AAAI, 2017</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Liu S, Li B, Fan Y Y, et al</td>
+	<td> Facial attractiveness computation by label distribution learning with deep CNN and geometric features</td>
+	<td>2017</td>
+	<td> IEEE International Conference on Multimedia and Expo, 2017: 1344-1349</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Ren Y, Geng X</td>
+	<td> Sense Beauty by Label Distribution Learning</td>
+	<td>2017</td>
+	<td> IJCAI, 2017: 2648-2654</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Shen W, Zhao K, Guo Y, et al</td>
+	<td> Label distribution learning forests</td>
+	<td>2017</td>
+	<td> Neural Information Processing Systems, 2017: 834-843</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xu M, Zhou Z H</td>
+	<td> Incomplete Label Distribution Learning</td>
+	<td>2017</td>
+	<td> IJCAI, 2017: 3175-3181</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xue D, Hong Z, Guo S, et al</td>
+	<td> Personality recognition on social media with label distribution learning</td>
+	<td>2017</td>
+	<td> IEEE Access, 2017, 5: 13478-13488</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Chen K , Joni-Kristian K妋妑奿nen</td>
+	<td> Learning with Ambiguous Label Distribution for Apparent Age Estimation</td>
+	<td>2016</td>
+	<td> Asian Conference on Computer Vision, 2016: 330-343</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Chen K , Joni-Kristian K妋妑奿nen, Zhang Z </td>
+	<td> Facial Age Estimation Using Robust Label Distribution</td>
+	<td>2016</td>
+	<td> ACM international conference on Multimedia, 2016: 77-81</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Geng X</td>
+	<td> Label distribution learning</td>
+	<td>2016</td>
+	<td> IEEE Transactions on Knowledge and Data Engineering, 2016, 28(7): 1734-1748</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Huo Z, Yang X, Xing C, et al</td>
+	<td> Deep age distribution learning for apparent age estimation</td>
+	<td>2016</td>
+	<td> IEEE conference on computer vision and pattern recognition workshops, 2016: 17-24</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Xing C, Geng X, Xue H</td>
+	<td> Logistic boosting regression for label distribution learning</td>
+	<td>2016</td>
+	<td> IEEE Conference on Computer Vision and Pattern Recognition, 2016: 4489-4497</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Yang X, Geng X, Zhou D</td>
+	<td> Sparsity Conditional Energy Label Distribution Learning for Age Estimation</td>
+	<td>2016</td>
+	<td> IJCAI, 2016: 2259-2265</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhao W, Wang H</td>
+	<td> Strategic decision-making learning from label distributions: an approach for facial age estimation</td>
+	<td>2016</td>
+	<td> Sensors, 2016, 16(7): 994</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhang X, Gao F, Huang D, et al</td>
+	<td> Photo aesthetic quality assessment via label distribution learning</td>
+	<td>2016</td>
+	<td> IEEE International Conference on Systems, Man, and Cybernetics, 2016: 001467-001470</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhou D, Zhou Y, Zhang X, et al</td>
+	<td> Emotion Distribution Learning from Texts</td>
+	<td>2016</td>
+	<td> Conference on Empirical Methods in Natural Language Processing, 2016: 638-647</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Geng X, Hou P</td>
+	<td> Pre-release prediction of crowd opinion on movies by label distribution learning</td>
+	<td>2015</td>
+	<td> International Joint Conference on Artificial Intelligence, 2015</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Gui M, Zhang X, Hu G, et al</td>
+	<td> A study on tongue image color description based on label distribution learning</td>
+	<td>2015</td>
+	<td> International Conference on Biomedical Engineering and Informatics, 2015: 148-152</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Yang X, Gao B B, Xing C, et al</td>
+	<td> Deep label distribution learning for apparent age estimation</td>
+	<td>2015</td>
+	<td> IEEE international conference on computer vision workshops, 2015: 102-108</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Zhang Z, Wang M, Geng X</td>
+	<td> Crowd counting in public video surveillance by label distribution learning</td>
+	<td>2015</td>
+	<td> Neurocomputing, 2015, 166: 151-163</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Geng X, Wang Q, Xia Y</td>
+	<td> Facial age estimation by adaptive label distribution learning</td>
+	<td>2014</td>
+	<td> International Conference on Pattern Recognition(ICPR), 2014: 4465-4470</td>
+	<td>Conference</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Khetade V G, Thakare S B</td>
+	<td> An Efficient Method For Human Age Estimation By Label Distribution Learning</td>
+	<td>2014</td>
+	<td> International Journal of Advance Research in Computer Science and Management Studies, 2014, 2(9): 70-75</td>
+	<td>Journal</td>
+</tr>
+
+
+<tr id="" class="entry">
+	<td> Geng X, Yin C, Zhou Z H</td>
+	<td> Facial age estimation by learning from label distributions</td>
+	<td>2013</td>
+	<td> IEEE Transactions on Pattern Analysis and Machine Intelligence, 2013, 35(10): 2401-2412</td>
+	<td>Journal</td>
+</tr>
+
+
+
+
+</tbody>
+</table>
+<footer>
+ <small>Created by <a href="http://jabref.sourceforge.net">JabRef</a> on 21/10/2019.</small>
+</footer>
+<!-- file generated by JabRef -->
+</body>
+</html>
